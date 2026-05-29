@@ -1,11 +1,11 @@
 const fs = require('fs');
-const nodemailer = require('nodemailer');
-
 const EMAIL_DESTINO = process.env.EMAIL_DESTINO;
 const EMAIL_REMETENTE = process.env.EMAIL_REMETENTE;
 const EMAIL_SENHA = process.env.EMAIL_SENHA;
 const ARQUIVO_ESTADO = 'estado.json';
 const API_BASE = 'https://sapl.al.ac.leg.br';
+const PAGE_SIZE = Number(process.env.PAGE_SIZE || 100);
+const MAX_PAGINAS = Number(process.env.MAX_PAGINAS || process.env.MAX_PAGES || 30);
 
 function carregarEstado() {
   if (fs.existsSync(ARQUIVO_ESTADO)) {
@@ -19,6 +19,12 @@ function salvarEstado(estado) {
 }
 
 async function enviarEmail(novas) {
+  if (process.env.DRY_RUN_EMAIL === '1') {
+    console.log(`[DRY_RUN_EMAIL] ${novas.length} proposições novas.`);
+    novas.slice(0, 20).forEach(p => console.log(`${p.tipo} ${p.numero}/${p.ano} - ${p.data} - ${p.ementa}`));
+    return;
+  }
+  const nodemailer = require('nodemailer');
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user: EMAIL_REMETENTE, pass: EMAIL_SENHA },
@@ -83,10 +89,7 @@ async function enviarEmail(novas) {
 async function buscarProposicoes() {
   const ano = new Date().getFullYear();
   let pagina = 1;
-  const PAGE_SIZE = 100;
-  const MAX_PAGINAS = 5; // limita backlog no primeiro run; aumentar se necessário
   let todasProposicoes = [];
-  let totalCount = null;
 
   console.log(`🔍 Buscando proposições de ${ano} na ALAC (SAPL)...`);
 
@@ -110,10 +113,10 @@ async function buscarProposicoes() {
 
     const json = await response.json();
 
-    if (pagina === 1) {
-      totalCount = json.count || 0;
-      const totalPaginas = Math.ceil(totalCount / PAGE_SIZE);
-      console.log(`📊 Total na API: ${totalCount} proposições (${totalPaginas} páginas)`);
+    const pagination = json.pagination || {};
+    const totalPaginas = Number(pagination.total_pages || 0);
+    if (pagina === 1 && totalPaginas) {
+      console.log(`📊 Total na API: ${pagination.total_entries || '?'} proposições (${totalPaginas} páginas)`);
     }
 
     const resultados = json.results || [];
@@ -123,7 +126,8 @@ async function buscarProposicoes() {
 
     todasProposicoes = todasProposicoes.concat(resultados);
 
-    if (!json.next) break; // sem próxima página
+    if (totalPaginas && pagina >= totalPaginas) break;
+    if (!totalPaginas && !json.next && !pagination?.links?.next && resultados.length < PAGE_SIZE) break;
     pagina++;
   }
 
