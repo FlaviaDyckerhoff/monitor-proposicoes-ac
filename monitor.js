@@ -4,6 +4,8 @@ const EMAIL_REMETENTE = process.env.EMAIL_REMETENTE;
 const EMAIL_SENHA = process.env.EMAIL_SENHA;
 const ARQUIVO_ESTADO = 'estado.json';
 const API_BASE = 'https://sapl.al.ac.leg.br';
+const CASA_NOME = 'Assembleia Legislativa do Acre';
+const MATERIA_BASE = 'https://sapl.al.ac.leg.br/materia';
 const PAGE_SIZE = Number(process.env.PAGE_SIZE || 100);
 const MAX_PAGINAS = Number(process.env.MAX_PAGINAS || process.env.MAX_PAGES || 30);
 
@@ -21,7 +23,7 @@ function salvarEstado(estado) {
 async function enviarEmail(novas) {
   if (process.env.DRY_RUN_EMAIL === '1') {
     console.log(`[DRY_RUN_EMAIL] ${novas.length} proposições novas.`);
-    novas.slice(0, 20).forEach(p => console.log(`${p.tipo} ${p.numero}/${p.ano} - ${p.data} - ${p.ementa}`));
+    novas.slice(0, 20).forEach(p => console.log(`${p.tipo} ${p.numero}/${p.ano} - ${p.link} - ${p.data} - ${p.ementa}`));
     return;
   }
   const nodemailer = require('nodemailer');
@@ -43,7 +45,7 @@ async function enviarEmail(novas) {
     const rows = porTipo[tipo].map(p =>
       `<tr>
         <td style="padding:8px;border-bottom:1px solid #eee;color:#555;font-size:12px">${p.tipo || '-'}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee"><strong>${p.numero || '-'}/${p.ano || '-'}</strong></td>
+        <td style="padding:8px;border-bottom:1px solid #eee"><a href="${p.link}" style="color:#1a3a5c;text-decoration:none"><strong>${p.numero || '-'}/${p.ano || '-'}</strong></a></td>
         <td style="padding:8px;border-bottom:1px solid #eee;font-size:12px">${p.autor || '-'}</td>
         <td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;white-space:nowrap">${p.data || '-'}</td>
         <td style="padding:8px;border-bottom:1px solid #eee;font-size:12px">${p.ementa || '-'}</td>
@@ -55,7 +57,7 @@ async function enviarEmail(novas) {
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:900px;margin:0 auto">
       <h2 style="color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px">
-        🏛️ ALAC — ${novas.length} nova(s) proposição(ões)
+        🏛️ ${CASA_NOME} — ${novas.length} nova(s) proposição(ões)
       </h2>
       <p style="color:#666">Monitoramento automático — ${new Date().toLocaleString('pt-BR')}</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -77,9 +79,9 @@ async function enviarEmail(novas) {
   `;
 
   await transporter.sendMail({
-    from: `"Monitor ALAC" <${EMAIL_REMETENTE}>`,
+    from: `"Monitor ${CASA_NOME}" <${EMAIL_REMETENTE}>`,
     to: EMAIL_DESTINO,
-    subject: `🏛️ ALAC: ${novas.length} nova(s) proposição(ões) — ${new Date().toLocaleDateString('pt-BR')}`,
+    subject: `🏛️ ${CASA_NOME}: ${novas.length} nova(s) proposição(ões) — ${new Date().toLocaleDateString('pt-BR')}`,
     html,
   });
 
@@ -167,6 +169,7 @@ function normalizarProposicao(p) {
     tipo: extrairTipo(p),
     numero: String(p.numero || '-'),
     ano: String(p.ano || '-'),
+    link: `${MATERIA_BASE}/${gerarId(p)}`,
     autor,
     data: p.data_apresentacao || p.data || '-',
     ementa: (p.ementa || p.descricao || '-').substring(0, 200),
