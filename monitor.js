@@ -193,6 +193,12 @@ function normalizarProposicao(p) {
   const novas = proposicoes.filter(p => !idsVistos.has(p.id));
   console.log(`🆕 Proposições novas: ${novas.length}`);
 
+  if (process.env.DRY_RUN_EMAIL === '1') {
+    await enviarEmail(novas);
+    console.log('DRY_RUN_EMAIL=1 — estado preservado sem alterações.');
+    return;
+  }
+
   if (novas.length > 0) {
     // Ordena por tipo alfabético, depois por número decrescente dentro de cada tipo
     novas.sort((a, b) => {
