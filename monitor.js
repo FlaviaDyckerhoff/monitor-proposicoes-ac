@@ -192,7 +192,7 @@ function normalizarProposicao(p) {
     link: `${MATERIA_BASE}/${gerarId(p)}`,
     autor,
     data: p.data_apresentacao || p.data || '-',
-    ementa: (p.ementa || p.descricao || '-').substring(0, 200),
+    ementa: String(p.ementa || p.descricao || '-').replace(/\s+/g, ' ').trim() || '-',
   };
 }
 
