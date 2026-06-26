@@ -5,6 +5,7 @@ const EMAIL_SENHA = process.env.EMAIL_SENHA;
 const ARQUIVO_ESTADO = 'estado.json';
 const API_BASE = 'https://sapl.al.ac.leg.br';
 const CASA_NOME = 'Assembleia Legislativa do Acre';
+const EMAIL_LOCALIDADE = 'Acre';
 const MATERIA_BASE = 'https://sapl.al.ac.leg.br/materia';
 const PAGE_SIZE = Number(process.env.PAGE_SIZE || 100);
 const MAX_PAGINAS = Number(process.env.MAX_PAGINAS || process.env.MAX_PAGES || 30);
@@ -206,7 +207,7 @@ async function enviarEmail(novas) {
   await transporter.sendMail({
     from: `"Monitor ${CASA_NOME}" <${EMAIL_REMETENTE}>`,
     to: EMAIL_DESTINO,
-    subject: `🏛️ ${CASA_NOME}: ${novas.length} nova(s) proposição(ões) — ${new Date().toLocaleDateString('pt-BR')}`,
+    subject: `🏛️ ${EMAIL_LOCALIDADE}: ${novas.length} nova(s) proposição(ões) — ${new Date().toLocaleDateString('pt-BR')}`,
     html,
   });
 
