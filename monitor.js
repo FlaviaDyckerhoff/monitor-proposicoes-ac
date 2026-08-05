@@ -629,6 +629,7 @@ function normalizarProposicao(p) {
       return (parseInt(b.numero) || 0) - (parseInt(a.numero) || 0);
     });
 
+    await sincronizarRadar03(novas);
     await enviarEmail(novas);
 
     novas.forEach(p => idsVistos.add(p.id));
